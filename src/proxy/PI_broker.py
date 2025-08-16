@@ -18,8 +18,11 @@ class PIBroker(Broker):
     """
 
     def __init__(self, input_queue_name='PI_output_queue', output_queue_name='model_input_queue', host='localhost'):
+        """
+        Initializing the proxy that interceps messages
+        """
         super().__init__(input_queue_name, output_queue_name, 'PI_output_exchange', 'model_input_exchange', host)
-        self.PI_analyzer = PIAnalyzer(model=None) 
+        self.PI_analyzer = PIAnalyzer() 
 
     def callback(self, ch, method, properties, body):
         try:
@@ -34,13 +37,15 @@ class PIBroker(Broker):
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
 
-            self.emit_message(input_text, message_type='PI_input')
-            logger.debug(f"Input text sent for analysis: {input_text}")
+            safe_val = self.PI_analyzer.analyze(input_text)
+
+            
+
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")
             # Reject message and requeue
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True) 
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)   
 
     def close_connection(self):
         """Close the RabbitMQ connection."""
