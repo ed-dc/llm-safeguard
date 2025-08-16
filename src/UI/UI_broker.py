@@ -38,6 +38,18 @@ class UI_broker(Broker):
             ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
 
 
+    def start(self):
+        """
+        Starting the CMDline instance.
+        """
+        self.setup_broker()
+        try:
+            broker.get_messages(broker.callback)
+        except KeyboardInterrupt:
+            logger.info("UI Broker stopped by user.")
+            broker.close_connection()
+
+
 if __name__ == "__main__":
     # Example usage
     broker = UI_broker()

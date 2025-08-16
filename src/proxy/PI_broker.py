@@ -23,6 +23,7 @@ class PIBroker(Broker):
         """
         super().__init__(input_queue_name, output_queue_name, 'PI_output_exchange', 'model_input_exchange', host)
         self.PI_analyzer = PIAnalyzer() 
+        
 
     def callback(self, ch, method, properties, body):
         try:
