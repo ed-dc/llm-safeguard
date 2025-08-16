@@ -39,8 +39,14 @@ class PIBroker(Broker):
 
             safe_val = self.PI_analyzer.analyze(input_text)
 
+            if safe_val:
+                self.emit_message("prompt injection detected","PI_detected")
             
+            else:
+                self.emit_message(input_text, "PI_safe ")
+            logger.info(f"Analyzed : {safe_val}")
 
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
         except Exception as e:
             logger.error(f"Error processing message: {e}")

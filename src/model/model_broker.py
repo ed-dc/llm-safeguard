@@ -31,21 +31,23 @@ class ModelBroker(Broker):
 
             # Process message with the model
             input_text = message.get('content', '')
+            type = message.get("type")
             if not input_text:
                 logger.warning("Received empty input text. Skipping processing.")
                 ch.basic_ack(delivery_tag=method.delivery_tag)
                 return
+            
+            if type == "PI_safe":
 
-            response = self.model.generate_response(input_text)
-            logger.info(f"Generated response: {response}")
+                response = self.model.generate_response(input_text)
+                logger.info(f"Generated response: {response}")
 
-            # Send the response back to the user
-            response_message = {
-                'content': response,
-                'type': 'model_response',
-            }
-            self.emit_message(response_message, message_type='model_response')
-            logger.info("Response sent to user.")
+                self.emit_message(response, message_type='model_response')
+                logger.info("Response sent to user.")
+
+            else:
+                response = "Sorry it looks like you are trying to do a prompt injection attack, wich is not authorized."
+                self.emit_message(response,message_type="model_response")
             # Acknowledge message
             ch.basic_ack(delivery_tag=method.delivery_tag)
                 
