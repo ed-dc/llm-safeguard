@@ -17,11 +17,12 @@ load_dotenv()
 
 # Get the Env variable 
 NVIDIA_API_KEY = os.getenv('NVIDIA_API_KEY')
+MODEL_NAME = os.getenv('MODEL_NAME', 'openai/gpt-oss-20b')
 if not NVIDIA_API_KEY:
     logging.error("NVIDIA_API_KEY environment variable is not set.")
     sys.exit(1)
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 ##  Way to choose wich model to use
 # available_models = [model for model in ChatNVIDIA.get_available_models() 
@@ -38,8 +39,10 @@ class BaseModel:
     
     """
 
-    def __init__(self, model):
-        self.model = model
+    def __init__(self):
+        self.model = ChatNVIDIA(
+            model=MODEL_NAME,  
+            api_key=NVIDIA_API_KEY)
         self.output_parser = StrOutputParser()
         self.prompt_template = ChatPromptTemplate.from_messages(
             [

@@ -6,86 +6,52 @@ import pika
 import json
 import logging
 
-class PIBroker:
+from src.broker.broker import Broker
+from PI_analyzer import PIAnalyzer  
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+class PIBroker(Broker):
     """Broker class for managing prompt injection analysis.
     This class is designed to retrieve messages from the user by rabbitMQ
     """
 
-    def __init__(self, model, queue_name='PI_input_queue', host='localhost'):
-        self.model = model
-        self.queue_name = queue_name
-        self.host = host
-        self.connection = None
-        self.channel = None
-        self.PI_analyzer = None
-        
-    def setup_broker(self):
-        """Set up the broker to retrieve messages from the user."""
-        try:
-            # Establish connection to RabbitMQ server
-            self.connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=self.host)
-            )
-            self.channel = self.connection.channel()
-            
-            
-            # Declare the queue (creates if doesn't exist)
-            self.channel.queue_declare(queue=self.queue_name, durable=True)
-            self.channel.queue_bind(exchange='PI_exchange', queue=self.queue_name)
+    def __init__(self, input_queue_name='PI_output_queue', output_queue_name='model_input_queue', host='localhost'):
+        super().__init__(input_queue_name, output_queue_name, 'PI_output_exchange', 'model_input_exchange', host)
+        self.PI_analyzer = PIAnalyzer(model=None) 
 
-            logging.info(f"Connected to RabbitMQ broker at {self.host}")
-            logging.info(f"Queue '{self.queue_name}' declared")
-            
-        except Exception as e:
-            logging.error(f"Failed to connect to RabbitMQ: {e}")
-            raise
-
-    def get_messages(self):
-        """Retrieve messages from the user."""
-        if not self.channel:
-            raise RuntimeError("Broker not set up. Call setup_broker() first.")
-        
-        # Set up consumer
-        self.channel.basic_qos(prefetch_count=1)
-        self.channel.basic_consume(queue=self.queue_name, on_message_callback=self.callback)
-
-        logging.info("Waiting for messages. To exit press CTRL+C")
-        try:
-            self.channel.start_consuming()
-        except KeyboardInterrupt:
-            self.channel.stop_consuming()
-            self.close_connection()
-        
     def callback(self, ch, method, properties, body):
         try:
             # Decode message
             message = json.loads(body.decode('utf-8'))
-            logging.info(f"Received message: {message}")
+            logger.info(f"Received message: {message}")
 
             # Process message with the model
-            # You can add your prompt injection analysis logic here
-            
+            input_text = message.get('content', '')
+            if not input_text:
+                logger.warning("Received empty input text. Skipping processing.")
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+                return
 
-            # Acknowledge message
-            ch.basic_ack(delivery_tag=method.delivery_tag)
-                
+            self.emit_message(input_text, message_type='PI_input')
+            logger.debug(f"Input text sent for analysis: {input_text}")
+
         except Exception as e:
-            logging.error(f"Error processing message: {e}")
+            logger.error(f"Error processing message: {e}")
             # Reject message and requeue
-            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True) 
 
     def close_connection(self):
         """Close the RabbitMQ connection."""
         if self.connection and not self.connection.is_closed:
             self.connection.close()
-            logging.info("RabbitMQ connection closed")
+            logger.info("RabbitMQ connection closed")
+    
 
 if __name__ == "__main__":
     # Example usage
-    logging.basicConfig(level=logging.INFO)
-    model = None  # Replace with your model instance
-    broker = PIBroker(model)
+    broker = PIBroker()
     broker.setup_broker()
-    broker.get_messages()
+    broker.get_messages(broker.callback)
     broker.close_connection()

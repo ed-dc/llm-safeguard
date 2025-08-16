@@ -6,59 +6,48 @@ import pika
 import json
 import logging
 
+from src.broker.broker import Broker
 
-class UI_broker:
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+class UI_broker(Broker):
     """
     Broker class for managing user interface interactions.
     This class is designed to emit messages to the user via RabbitMQ.
     """
 
-    def __init__(self, queue_name='PI_input_queue', host='localhost'):
-        self.queue_name = queue_name
-        self.host = host
-        self.connection = None
-        self.channel = None
+    def __init__(self, input_queue_name='PI_input_queue', output_queue_name='PI_output_queue', host='localhost'):
+        super().__init__(input_queue_name, output_queue_name, 'PI_input_exchange', 'PI_output_exchange', host)
 
-    def setup_rabbitmq(self):
-        """Set up RabbitMQ connection for emitting messages."""
+    
+    def callback(self, ch, method, properties, body):
+        """Callback function to handle incoming messages."""
         try:
-            self.connection = pika.BlockingConnection(
-                pika.ConnectionParameters(host=self.host)
-            )
-            self.channel = self.connection.channel()
-            self.channel.queue_declare(queue=self.queue_name, durable=True)
-            self.channel.queue_bind(exchange='PI_exchange', queue=self.queue_name)
-            logging.info(f"RabbitMQ connection established for UI")
-        except Exception as e:
-            logging.error(f"Failed to connect to RabbitMQ: {e}")
-            raise
+            # Decode message
+            message = json.loads(body.decode('utf-8'))
+            logger.info(f"Received message: {message}")
 
-    def emit_message(self, message_content, message_type='user_input'):
-        """Emit a message to RabbitMQ broker."""
-        if not self.channel:
-            self.setup_rabbitmq()
-        
-        message = {
-            'content': message_content,
-            'type': message_type,
-        }
-        
-        try:
-            self.channel.basic_publish(
-                exchange='',
-                routing_key=self.queue_name,
-                body=json.dumps(message),
-                properties=pika.BasicProperties(
-                    delivery_mode=2,  
-                )
-            )
-            logging.info(f"Message sent: {message_content}")
-        except Exception as e:
-            logging.error(f"Failed to send message: {e}")
-            raise
+            # Process the message (this could be customized)
+            # For now, we just acknowledge the message
+            ch.basic_ack(delivery_tag=method.delivery_tag)
 
-    def close_rabbitmq_connection(self):
-        """Close RabbitMQ connection."""
-        if self.connection and not self.connection.is_closed:
-            self.connection.close()
-            logging.info("RabbitMQ connection closed")
+        except Exception as e:
+            logger.error(f"Error processing message: {e}")
+            # Reject message and requeue
+            ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+
+
+if __name__ == "__main__":
+    # Example usage
+    broker = UI_broker()
+    broker.setup_broker()
+    logger.info("UI Broker is ready to receive messages.")
+
+    broker.emit_message("What's the capital of France?", message_type='user_input')
+    # Start consuming messages
+    try:
+        broker.get_messages(broker.callback)
+    except KeyboardInterrupt:
+        logger.info("UI Broker stopped by user.")
+        broker.close_connection()
