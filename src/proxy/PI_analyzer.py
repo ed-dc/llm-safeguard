@@ -46,13 +46,10 @@ class PIAnalyzer:
 
         result = self.model(prompt)
         injection_type = result[0]["label"]
-        logger.info(f"Result from analyze is : {injection_type}")
         if injection_type == "SAFE":
             return 0
         return 1
 
-# if __name__ == "__main__":
-#     analyzer = PIAnalyzer()
-#     print(analyzer.analyze("I love cats"))
+
 
     
