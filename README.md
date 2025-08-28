@@ -126,7 +126,7 @@ llm-safeguard/
 │   ├── 📁 proxy/       # Security proxy layer
 │   ├── 📁 model/       # LLM integration
 │   └── 📁 tests/       # Test suites
-├── 📁 images/          # Documentation images
+├── 📁 docs/          # Documentation images
 ├── 📄 README.md
 └── 📄 requirements.txt
 ```
