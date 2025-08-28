@@ -62,43 +62,6 @@ class CmdUI():
         print("  help  - Show this help message")
         print("--------------------------------------------------")
 
-    def run(self):
-        """
-        Main chat loop
-        """
-        self.setup()
-        
-        while True:
-            try:
-                user_input = input("👤 You: ").strip()
-                
-                if user_input.lower() == 'exit':
-                    print("Goodbye!")
-                    break
-                elif user_input.lower() == 'reset':
-                    self.reset()
-                    continue
-                elif user_input.lower() == 'help':
-                    self.show_help()
-                    continue
-                elif user_input == '':
-                    continue
-                
-                                
-                # Here you would process the message with your LLM
-                # For now, just echo back
-                self.assistant_line(f"You said: {user_input}")
-                
-            except KeyboardInterrupt:
-                print("\n\nExiting...")
-                break
-            except Exception as e:
-                self.warning(f"An error occurred: {str(e)}")
-
-
-if __name__ == "__main__":
-    ui = CmdUI()
-    ui.run()
     
 
 
