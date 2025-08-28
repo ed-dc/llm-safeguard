@@ -38,10 +38,20 @@ The system is built with a **3-tier architecture** for maximum security and modu
   - Data leak prevention
 - **Technology**: Advanced ML models
 
+
 ### 🤖 **Model Layer**
 - **Purpose**: Core chatbot functionality
 - **Features**: Natural language processing and response generation
 - **Technology**: Local LLM integration
+
+### ⭐ Comments
+
+However here there is no points in having a dataleaks security layer. Indeed, if it was an agent capable of accessing undesirable datas, then it would be a great feature to add. 
+
+In this case there is much to do, etheir encrypt sensitive datas, filter the ouput,...
+Here are some ressources about that : 
+- [output filtering and content moderation](https://apxml.com/courses/intro-llm-red-teaming/chapter-5-defenses-mitigation-strategies-llms/output-filtering-content-moderation)
+- [OWASP Top ten](https://genai.owasp.org/llmrisk/llm022025-sensitive-information-disclosure/) (highly recommand checking all the top 10)
 
 ---
 
